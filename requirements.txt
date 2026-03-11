@@ -1,0 +1,32 @@
+# ─────────────────────────────────────────────
+# MelodyTab AI — Dependências de Produção
+# ─────────────────────────────────────────────
+
+# Interface web
+streamlit==1.32.0
+
+# Separação de instrumentos (local)
+demucs==4.0.1
+
+# Detecção de acordes (local)
+basic-pitch==0.3.3
+
+# Detecção de melodia (local)
+crepe==0.0.13
+
+# Análise de áudio
+librosa==0.10.1
+soundfile==0.12.1
+numpy==1.26.4
+
+# APIs cloud
+groq==0.5.0
+replicate==0.25.1
+huggingface-hub==0.21.4
+requests==2.31.0
+
+# Variáveis de ambiente
+python-dotenv==1.0.1
+
+# Exportação PDF
+reportlab==4.1.0

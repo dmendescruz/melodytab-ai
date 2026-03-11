@@ -1,0 +1,41 @@
+# Ambiente virtual
+.venv/
+env/
+venv/
+
+# Variáveis de ambiente — NUNCA commitar o .env real
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Arquivos temporários de áudio (uploads e processamento)
+*.mp3
+*.wav
+*.flac
+*.ogg
+/tmp/
+
+# Modelos baixados localmente pelo Demucs
+models/
+separated/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Testes
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDEs
+.vscode/settings.json
+.idea/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db

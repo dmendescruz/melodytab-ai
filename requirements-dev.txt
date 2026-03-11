@@ -1,0 +1,18 @@
+# ─────────────────────────────────────────────
+# MelodyTab AI — Dependências de Desenvolvimento
+# ─────────────────────────────────────────────
+
+# Inclui todas as dependências de produção
+-r requirements.txt
+
+# Testes
+pytest==8.1.1
+pytest-cov==5.0.0
+pytest-asyncio==0.23.6
+
+# Qualidade de código
+black==24.3.0
+ruff==0.3.4
+
+# Utilitários de desenvolvimento
+ipython==8.22.2
