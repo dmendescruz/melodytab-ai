@@ -3,8 +3,7 @@ test_separator.py
 Testes unitários para o módulo separator.py
 """
 
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -18,6 +17,7 @@ from app.pipeline.separator import (
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def audio_path(tmp_path):
@@ -35,7 +35,9 @@ def stem_dir(tmp_path):
 
     for nome in ["vocals", "bass", "drums", "other"]:
         faixa = stems / f"{nome}.wav"
-        faixa.write_bytes(b"x" * 2048)  # conteúdo suficiente para passar _has_audio_content
+        faixa.write_bytes(
+            b"x" * 2048
+        )  # conteúdo suficiente para passar _has_audio_content
 
     return stems
 
@@ -54,6 +56,7 @@ def stem_dir_6s(tmp_path):
 
 
 # ── Testes: _has_audio_content ────────────────────────────────────────────────
+
 
 class TestHasAudioContent:
 
@@ -77,13 +80,14 @@ class TestHasAudioContent:
 
 # ── Testes: _select_harmonic ──────────────────────────────────────────────────
 
+
 class TestSelectHarmonic:
 
     def test_prioriza_guitarra_quando_disponivel(self, tmp_path):
         """Deve selecionar guitarra quando disponível e com conteúdo."""
         guitar = tmp_path / "guitar.wav"
-        piano  = tmp_path / "piano.wav"
-        other  = tmp_path / "other.wav"
+        piano = tmp_path / "piano.wav"
+        other = tmp_path / "other.wav"
 
         guitar.write_bytes(b"x" * 2048)
         piano.write_bytes(b"x" * 2048)
@@ -120,10 +124,10 @@ class TestSelectHarmonic:
     def test_ignora_guitarra_sem_conteudo(self, tmp_path):
         """Deve ignorar guitarra com arquivo muito pequeno e usar piano."""
         guitar = tmp_path / "guitar.wav"
-        piano  = tmp_path / "piano.wav"
-        other  = tmp_path / "other.wav"
+        piano = tmp_path / "piano.wav"
+        other = tmp_path / "other.wav"
 
-        guitar.write_bytes(b"x" * 10)   # muito pequeno — inválido
+        guitar.write_bytes(b"x" * 10)  # muito pequeno — inválido
         piano.write_bytes(b"x" * 2048)
         other.write_bytes(b"x" * 2048)
 
@@ -134,6 +138,7 @@ class TestSelectHarmonic:
 
 
 # ── Testes: separate (fluxo principal) ───────────────────────────────────────
+
 
 class TestSeparate:
 
@@ -191,7 +196,7 @@ class TestSeparate:
         self, mock_local, mock_replicate, audio_path
     ):
         """Deve retornar SeparationResult com success=False quando ambos falham."""
-        mock_local.side_effect     = RuntimeError("Demucs falhou")
+        mock_local.side_effect = RuntimeError("Demucs falhou")
         mock_replicate.side_effect = RuntimeError("Replicate falhou")
 
         result = separate(audio_path)
@@ -225,13 +230,14 @@ class TestSeparate:
 
 # ── Testes: modelo htdemucs_6s ────────────────────────────────────────────────
 
+
 class TestModelo6Stems:
 
     def test_seleciona_guitarra_no_modelo_6s(self, tmp_path):
         """Com htdemucs_6s, deve priorizar guitarra sobre other."""
         guitar = tmp_path / "guitar.wav"
-        piano  = tmp_path / "piano.wav"
-        other  = tmp_path / "other.wav"
+        piano = tmp_path / "piano.wav"
+        other = tmp_path / "other.wav"
 
         guitar.write_bytes(b"x" * 2048)
         piano.write_bytes(b"x" * 2048)
@@ -245,10 +251,10 @@ class TestModelo6Stems:
     def test_seleciona_piano_quando_guitarra_vazia_no_modelo_6s(self, tmp_path):
         """Com htdemucs_6s, deve usar piano quando guitarra está vazia."""
         guitar = tmp_path / "guitar.wav"
-        piano  = tmp_path / "piano.wav"
-        other  = tmp_path / "other.wav"
+        piano = tmp_path / "piano.wav"
+        other = tmp_path / "other.wav"
 
-        guitar.write_bytes(b"x" * 10)   # silêncio — inválido
+        guitar.write_bytes(b"x" * 10)  # silêncio — inválido
         piano.write_bytes(b"x" * 2048)
         other.write_bytes(b"x" * 2048)
 

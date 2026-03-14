@@ -13,7 +13,7 @@ com base nas faixas disponíveis no modelo escolhido.
 import logging
 import os
 import tempfile
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
@@ -41,8 +41,9 @@ HARMONIC_PRIORITY = ["guitar", "piano", "other"]
 
 # ── Enums e Dataclasses ───────────────────────────────────────────────────────
 
+
 class SeparationMode(Enum):
-    LOCAL    = "local"
+    LOCAL = "local"
     REPLICATE = "replicate"
 
 
@@ -69,21 +70,23 @@ class SeparationResult:
         success:      Indica se a separação foi bem-sucedida.
         error:        Mensagem de erro, se houver.
     """
-    vocals:          Path
-    harmonic:        Path
-    bass:            Path
-    drums:           Path
-    other:           Path
-    mode:            SeparationMode
-    success:         bool
-    model:           str            = "htdemucs"
-    harmonic_source: str            = "other"
-    guitar:          Path | None    = None
-    piano:           Path | None    = None
-    error:           str | None     = None
+
+    vocals: Path
+    harmonic: Path
+    bass: Path
+    drums: Path
+    other: Path
+    mode: SeparationMode
+    success: bool
+    model: str = "htdemucs"
+    harmonic_source: str = "other"
+    guitar: Path | None = None
+    piano: Path | None = None
+    error: str | None = None
 
 
 # ── Função Principal ──────────────────────────────────────────────────────────
+
 
 def separate(audio_path: Path) -> SeparationResult:
     """
@@ -141,6 +144,7 @@ def separate(audio_path: Path) -> SeparationResult:
 
 # ── Separação Local (Demucs) ──────────────────────────────────────────────────
 
+
 def _separate_local(audio_path: Path) -> SeparationResult:
     """
     Executa a separação usando Demucs localmente.
@@ -154,39 +158,46 @@ def _separate_local(audio_path: Path) -> SeparationResult:
     Raises:
         RuntimeError: Se a separação falhar ou arquivos não forem gerados.
     """
-    model      = os.getenv("DEMUCS_MODEL", "htdemucs")
+    model = os.getenv("DEMUCS_MODEL", "htdemucs")
     output_dir = Path(tempfile.mkdtemp(prefix="melodytab_"))
-    device     = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     logger.info("Modelo: %s | Dispositivo: %s | Saída: %s", model, device, output_dir)
     logger.info("Isso pode levar alguns minutos em CPU...")
 
-    demucs.separate.main([
-        "--name",   model,
-        "--out",    str(output_dir),
-        "--device", device,
-        str(audio_path),
-    ])
+    demucs.separate.main(
+        [
+            "--name",
+            model,
+            "--out",
+            str(output_dir),
+            "--device",
+            device,
+            str(audio_path),
+        ]
+    )
 
     stem_dir = output_dir / model / audio_path.stem
 
     # Faixas presentes em todos os modelos
     vocals = stem_dir / "vocals.wav"
-    bass   = stem_dir / "bass.wav"
-    drums  = stem_dir / "drums.wav"
-    other  = stem_dir / "other.wav"
+    bass = stem_dir / "bass.wav"
+    drums = stem_dir / "drums.wav"
+    other = stem_dir / "other.wav"
 
     # Faixas exclusivas do htdemucs_6s
     guitar = stem_dir / "guitar.wav" if model in MODELS_6_STEMS else None
-    piano  = stem_dir / "piano.wav"  if model in MODELS_6_STEMS else None
+    piano = stem_dir / "piano.wav" if model in MODELS_6_STEMS else None
 
     # Valida faixas obrigatórias
-    for nome, caminho in [("vocals", vocals), ("bass", bass),
-                           ("drums", drums), ("other", other)]:
+    for nome, caminho in [
+        ("vocals", vocals),
+        ("bass", bass),
+        ("drums", drums),
+        ("other", other),
+    ]:
         if not caminho.exists():
-            raise RuntimeError(
-                f"Arquivo não encontrado para '{nome}': {caminho}"
-            )
+            raise RuntimeError(f"Arquivo não encontrado para '{nome}': {caminho}")
 
     # Seleciona a melhor faixa harmônica disponível
     harmonic, harmonic_source = _select_harmonic(
@@ -212,6 +223,7 @@ def _separate_local(audio_path: Path) -> SeparationResult:
 
 # ── Fallback: Replicate API ───────────────────────────────────────────────────
 
+
 def _separate_replicate(audio_path: Path) -> SeparationResult:
     """
     Executa a separação usando a API do Replicate como fallback.
@@ -227,7 +239,6 @@ def _separate_replicate(audio_path: Path) -> SeparationResult:
         RuntimeError: Se o token não estiver configurado ou a API falhar.
     """
     import replicate
-    import requests
 
     token = os.getenv("REPLICATE_API_TOKEN")
     if not token:
@@ -246,18 +257,16 @@ def _separate_replicate(audio_path: Path) -> SeparationResult:
 
     urls = {
         "vocals": output.get("vocals"),
-        "other":  output.get("other"),
-        "bass":   output.get("bass"),
-        "drums":  output.get("drums"),
+        "other": output.get("other"),
+        "bass": output.get("bass"),
+        "drums": output.get("drums"),
     }
 
     # Valida e baixa todas as faixas
     caminhos = {}
     for nome, url in urls.items():
         if not url:
-            raise RuntimeError(
-                f"Replicate não retornou URL para a faixa '{nome}'"
-            )
+            raise RuntimeError(f"Replicate não retornou URL para a faixa '{nome}'")
         destino = output_dir / f"{nome}.wav"
         logger.info("Baixando faixa '%s'...", nome)
         _download_file(url, destino)
@@ -287,10 +296,11 @@ def _separate_replicate(audio_path: Path) -> SeparationResult:
 
 # ── Seleção da Faixa Harmônica ────────────────────────────────────────────────
 
+
 def _select_harmonic(
     guitar: Path | None,
-    piano:  Path | None,
-    other:  Path,
+    piano: Path | None,
+    other: Path,
 ) -> tuple[Path, str]:
     """
     Seleciona a melhor faixa harmônica para detecção de acordes.
@@ -308,8 +318,8 @@ def _select_harmonic(
     """
     candidatas = [
         ("guitar", guitar),
-        ("piano",  piano),
-        ("other",  other),
+        ("piano", piano),
+        ("other", other),
     ]
 
     for nome, caminho in candidatas:
@@ -343,6 +353,7 @@ def _has_audio_content(path: Path, min_size_bytes: int = 1024) -> bool:
 
 
 # ── Utilitários ───────────────────────────────────────────────────────────────
+
 
 def _download_file(url: str, destino: Path) -> None:
     """
