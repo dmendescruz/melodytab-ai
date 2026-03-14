@@ -11,7 +11,7 @@ demucs==4.0.1
 # Análise de áudio
 # - librosa.pyin        → detecção de melodia (substitui CREPE)
 # - librosa chroma/cqt  → detecção de acordes (substitui Basic Pitch)
-librosa==0.10.1
+librosa==0.11.0
 soundfile==0.12.1
 numpy==1.26.4
 
