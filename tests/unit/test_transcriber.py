@@ -37,12 +37,8 @@ def vocals_path_grande(tmp_path):
 
 @pytest.fixture
 def mock_word():
-    """Retorna um objeto simulando uma palavra da resposta da API Groq."""
-    word = MagicMock()
-    word.word = "olá"
-    word.start = 0.5
-    word.end = 0.9
-    return word
+    """Retorna um dicionário simulando uma palavra da resposta da API Groq v1.1.1."""
+    return {"word": "olá", "start": 0.5, "end": 0.9}
 
 
 @pytest.fixture
@@ -135,8 +131,8 @@ class TestParseWords:
 
     def test_timestamps_arredondados(self, mock_response):
         """Timestamps devem ser arredondados para 3 casas decimais."""
-        mock_response.words[0].start = 0.123456
-        mock_response.words[0].end = 0.987654
+        mock_response.words[0]["start"] = 0.123456
+        mock_response.words[0]["end"]   = 0.987654
 
         resultado = _parse_words(mock_response)
 

@@ -7,6 +7,7 @@ streamlit==1.32.0
 
 # Separação de instrumentos (local)
 demucs==4.0.1
+torchcodec
 
 # Análise de áudio
 # - librosa.pyin        → detecção de melodia (substitui CREPE)

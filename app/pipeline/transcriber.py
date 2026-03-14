@@ -163,9 +163,15 @@ def _parse_words(response) -> list[WordEvent]:
         return words
 
     for item in raw_words:
-        word = getattr(item, "word", "").strip()
-        start_time = float(getattr(item, "start", 0.0))
-        end_time = float(getattr(item, "end", 0.0))
+        # SDK 1.1.1 retorna dicionários em vez de objetos
+        if isinstance(item, dict):
+            word       = item.get("word", "").strip()
+            start_time = float(item.get("start", 0.0))
+            end_time   = float(item.get("end", 0.0))
+        else:
+            word       = getattr(item, "word", "").strip()
+            start_time = float(getattr(item, "start", 0.0))
+            end_time   = float(getattr(item, "end", 0.0))
 
         if not word:
             continue
