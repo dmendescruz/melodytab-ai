@@ -8,13 +8,9 @@ streamlit==1.32.0
 # Separação de instrumentos (local)
 demucs==4.0.1
 
-# Detecção de acordes (local)
-basic-pitch==0.3.3
-
-# Detecção de melodia (local)
-crepe==0.0.13
-
 # Análise de áudio
+# - librosa.pyin        → detecção de melodia (substitui CREPE)
+# - librosa chroma/cqt  → detecção de acordes (substitui Basic Pitch)
 librosa==0.10.1
 soundfile==0.12.1
 numpy==1.26.4
