@@ -88,9 +88,14 @@ class SeparationResult:
 # ── Função Principal ──────────────────────────────────────────────────────────
 
 
+# Diretório de cache para faixas separadas
+CACHE_DIR = Path.home() / ".melodytab_cache" / "separated"
+
+
 def separate(audio_path: Path) -> SeparationResult:
     """
     Ponto de entrada principal.
+    Verifica o cache antes de separar, evitando reprocessamento.
     Tenta separar localmente com Demucs, com fallback para Replicate API.
 
     Args:
@@ -100,6 +105,12 @@ def separate(audio_path: Path) -> SeparationResult:
         SeparationResult com os caminhos das faixas separadas.
     """
     logger.info("Iniciando separação de instrumentos: %s", audio_path)
+
+    # Verifica cache
+    cache_result = _load_from_cache(audio_path)
+    if cache_result:
+        logger.info("✅ Faixas carregadas do cache.")
+        return cache_result
 
     # Tentativa 1: Demucs local
     try:
@@ -111,6 +122,7 @@ def separate(audio_path: Path) -> SeparationResult:
             result.harmonic_source,
             result.model,
         )
+        _save_to_cache(audio_path, result)
         return result
 
     except Exception as e:
@@ -126,6 +138,7 @@ def separate(audio_path: Path) -> SeparationResult:
             result.harmonic_source,
             result.model,
         )
+        _save_to_cache(audio_path, result)
         return result
 
     except Exception as e:
@@ -350,6 +363,122 @@ def _has_audio_content(path: Path, min_size_bytes: int = 1024) -> bool:
         return path.stat().st_size > min_size_bytes
     except OSError:
         return False
+
+
+# ── Cache de Separação ────────────────────────────────────────────────────────
+
+
+def _get_cache_key(audio_path: Path) -> str:
+    """
+    Gera uma chave de cache baseada no hash MD5 do arquivo de áudio.
+
+    Args:
+        audio_path: Caminho para o arquivo de áudio.
+
+    Returns:
+        String com o hash MD5 do arquivo.
+    """
+    import hashlib
+
+    md5 = hashlib.md5()
+    with open(audio_path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            md5.update(chunk)
+    return md5.hexdigest()
+
+
+def _load_from_cache(audio_path: Path) -> SeparationResult | None:
+    """
+    Tenta carregar as faixas separadas do cache.
+
+    Args:
+        audio_path: Caminho para o arquivo de áudio original.
+
+    Returns:
+        SeparationResult com as faixas do cache, ou None se não encontrado.
+    """
+    try:
+        cache_key = _get_cache_key(audio_path)
+        cache_path = CACHE_DIR / cache_key
+
+        if not cache_path.exists():
+            logger.info("Cache não encontrado para: %s", audio_path.name)
+            return None
+
+        vocals = cache_path / "vocals.wav"
+        bass = cache_path / "bass.wav"
+        drums = cache_path / "drums.wav"
+        other = cache_path / "other.wav"
+        harmonic = cache_path / "harmonic.wav"
+
+        # Valida que todos os arquivos existem
+        for nome, caminho in [
+            ("vocals", vocals),
+            ("bass", bass),
+            ("drums", drums),
+            ("other", other),
+            ("harmonic", harmonic),
+        ]:
+            if not caminho.exists():
+                logger.warning("Cache incompleto — falta '%s'. Ignorando.", nome)
+                return None
+
+        model = os.getenv("DEMUCS_MODEL", "htdemucs")
+        logger.info("Cache encontrado: %s (%s)", cache_key[:8], audio_path.name)
+
+        return SeparationResult(
+            vocals=vocals,
+            harmonic=harmonic,
+            bass=bass,
+            drums=drums,
+            other=other,
+            mode=SeparationMode.LOCAL,
+            success=True,
+            model=model,
+            harmonic_source="other",
+        )
+
+    except Exception as e:
+        logger.warning("Erro ao carregar cache: %s", str(e))
+        return None
+
+
+def _save_to_cache(audio_path: Path, result: SeparationResult) -> None:
+    """
+    Salva as faixas separadas no cache para reutilização futura.
+
+    Args:
+        audio_path: Caminho para o arquivo de áudio original.
+        result:     Resultado da separação a ser cacheado.
+    """
+    try:
+        import shutil
+
+        cache_key = _get_cache_key(audio_path)
+        cache_path = CACHE_DIR / cache_key
+        cache_path.mkdir(parents=True, exist_ok=True)
+
+        # Copia as faixas para o diretório de cache
+        faixas = {
+            "vocals.wav": result.vocals,
+            "bass.wav": result.bass,
+            "drums.wav": result.drums,
+            "other.wav": result.other,
+            "harmonic.wav": result.harmonic,
+        }
+
+        for nome, origem in faixas.items():
+            if origem and origem.exists():
+                shutil.copy2(origem, cache_path / nome)
+
+        logger.info(
+            "Faixas salvas no cache: %s (%s)",
+            cache_key[:8],
+            audio_path.name,
+        )
+
+    except Exception as e:
+        logger.warning("Erro ao salvar cache: %s", str(e))
 
 
 # ── Utilitários ───────────────────────────────────────────────────────────────
