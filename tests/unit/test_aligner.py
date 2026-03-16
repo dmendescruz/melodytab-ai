@@ -157,17 +157,17 @@ class TestAlignWords:
         assert estarei.chord == "Am"
 
     def test_alinha_palavras_com_notas(self, words, chords, notes):
-        """Primeira palavra deve receber nota E4."""
+        """Primeira palavra deve receber pelo menos uma nota."""
         resultado = _align_words(words, chords, notes)
 
-        assert resultado[0].note == "E"
-        assert resultado[0].octave == 4
+        assert len(resultado[0].notes) > 0
+        assert "E" in resultado[0].notes
 
-    def test_palavra_sem_nota_recebe_none(self, words, chords):
-        """Palavra sem nota correspondente deve ter note=None."""
+    def test_palavra_sem_nota_recebe_lista_vazia(self, words, chords):
+        """Palavra sem nota correspondente deve ter notes=[]."""
         resultado = _align_words(words, chords, [])
 
-        assert all(w.note is None for w in resultado)
+        assert all(w.notes == [] for w in resultado)
 
     def test_palavra_sem_acorde_recebe_none(self, words, notes):
         """Palavra sem acorde correspondente deve ter chord=None."""

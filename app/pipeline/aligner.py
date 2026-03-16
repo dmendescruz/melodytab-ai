@@ -23,15 +23,14 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AlignedWord:
     """
-    Representa uma palavra alinhada com seu acorde e nota melódica.
+    Representa uma palavra alinhada com seu acorde e notas melódicas.
 
     Atributos:
         word:        Texto da palavra.
         start_time:  Tempo de início em segundos.
         end_time:    Tempo de fim em segundos.
         chord:       Acorde vigente no momento da palavra (ex: 'Am').
-        note:        Nota melódica no momento da palavra (ex: 'E').
-        octave:      Oitava da nota melódica.
+        notes:       Lista de notas melódicas durante a palavra (ex: ['E', 'G']).
         chord_change: True se o acorde muda nesta palavra.
     """
 
@@ -39,8 +38,7 @@ class AlignedWord:
     start_time: float
     end_time: float
     chord: str | None = None
-    note: str | None = None
-    octave: int | None = None
+    notes: list[str] = field(default_factory=list)
     chord_change: bool = False
 
 
@@ -135,10 +133,8 @@ def _align_words(
     notes: list[NoteEvent],
 ) -> list[AlignedWord]:
     """
-    Para cada palavra, encontra o acorde e a nota vigentes no mesmo timestamp.
-
-    A estratégia é simples: para cada palavra, procuramos o acorde e a nota
-    cujo intervalo de tempo contém o início da palavra.
+    Para cada palavra, encontra o acorde vigente e todas as notas
+    que ocorrem durante sua duração.
 
     Args:
         words:  Lista de palavras com timestamps.
@@ -146,15 +142,17 @@ def _align_words(
         notes:  Lista de notas com timestamps.
 
     Returns:
-        Lista de AlignedWord com acorde e nota preenchidos.
+        Lista de AlignedWord com acorde e notas preenchidos.
     """
     aligned = []
 
     for word_event in words:
-        t = word_event.start_time
-
-        chord = _find_at_time(chords, t)
-        note = _find_at_time(notes, t)
+        chord = _find_at_time(chords, word_event.start_time)
+        word_notes = _find_notes_in_range(
+            notes,
+            word_event.start_time,
+            word_event.end_time,
+        )
 
         aligned.append(
             AlignedWord(
@@ -162,13 +160,45 @@ def _align_words(
                 start_time=word_event.start_time,
                 end_time=word_event.end_time,
                 chord=chord.chord if chord else None,
-                note=note.note if note else None,
-                octave=note.octave if note else None,
+                notes=word_notes,
             )
         )
 
     logger.info("%d palavras alinhadas com acordes e notas.", len(aligned))
     return aligned
+
+
+def _find_notes_in_range(
+    notes: list[NoteEvent],
+    start: float,
+    end: float,
+) -> list[str]:
+    """
+    Retorna todas as notas que ocorrem dentro de um intervalo de tempo.
+
+    Args:
+        notes: Lista de notas com timestamps.
+        start: Tempo de início do intervalo em segundos.
+        end:   Tempo de fim do intervalo em segundos.
+
+    Returns:
+        Lista de nomes de notas únicas e ordenadas por tempo de ocorrência.
+    """
+    if not notes:
+        return []
+
+    notas_no_intervalo = []
+    ultima_nota = None
+
+    for note in notes:
+        # Nota começa dentro do intervalo da palavra
+        if start <= note.start_time < end:
+            # Evita repetir a mesma nota consecutiva
+            if note.note != ultima_nota:
+                notas_no_intervalo.append(note.note)
+                ultima_nota = note.note
+
+    return notas_no_intervalo
 
 
 def _find_at_time(events: list, time: float):

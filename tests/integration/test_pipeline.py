@@ -131,17 +131,17 @@ class TestAlignmentToFormatter:
     def test_notas_melodia_presentes(
         self, transcricao_completa, acordes_completos, melodia_completa
     ):
-        """Palavras com timestamp coincidente devem ter nota melódica."""
+        """Palavras com timestamp coincidente devem ter notas melódicas."""
         resultado = align(
             transcricao_completa,
             acordes_completos,
             melodia_completa,
         )
 
-        todas_palavras = [w for linha in resultado.lines for w in linha.words]
-        com_nota = [w for w in todas_palavras if w.note]
+        todas_palavras = [w for line in resultado.lines for w in line.words]
+        com_notas = [w for w in todas_palavras if w.notes]
 
-        assert len(com_nota) > 0
+        assert len(com_notas) > 0
 
     def test_pipeline_sem_melodia(self, transcricao_completa, acordes_completos):
         """Pipeline deve funcionar sem melodia."""
@@ -150,8 +150,8 @@ class TestAlignmentToFormatter:
         resultado = align(transcricao_completa, acordes_completos, sem_melodia)
 
         assert resultado.success is True
-        todas_palavras = [w for linha in resultado.lines for w in linha.words]
-        assert all(w.note is None for w in todas_palavras)
+        todas_palavras = [w for line in resultado.lines for w in line.words]
+        assert all(w.notes == [] for w in todas_palavras)
 
     def test_pipeline_sem_acordes(self, transcricao_completa, melodia_completa):
         """Pipeline deve funcionar sem acordes."""

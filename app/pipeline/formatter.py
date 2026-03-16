@@ -152,7 +152,10 @@ def _build_chord_line(words: list[AlignedWord]) -> str:
 
 def _build_melody_line(words: list[AlignedWord]) -> str:
     """
-    Monta a linha de melodia com as notas posicionadas sob as palavras.
+    Monta a linha de melodia com todas as notas posicionadas sob as palavras.
+
+    Exibe todas as notas que ocorrem durante cada palavra, separadas
+    por espaço, alinhadas com a posição da palavra na letra.
 
     Args:
         words: Lista de palavras de uma linha.
@@ -166,17 +169,17 @@ def _build_melody_line(words: list[AlignedWord]) -> str:
     for word in words:
         palavra = word.word + " "
 
-        if word.note:
-            nota = word.note + " "
+        if word.notes:
+            notas = " ".join(word.notes) + " "
 
-            # Alinha a nota com a posição da palavra
+            # Alinha as notas com a posição da palavra
             pos_palavra = len(lyric_line)
             pos_atual = len(melody_line)
 
             if pos_atual < pos_palavra:
                 melody_line += " " * (pos_palavra - pos_atual)
 
-            melody_line += nota
+            melody_line += notas
 
         lyric_line += palavra
 

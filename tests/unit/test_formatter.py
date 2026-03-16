@@ -25,11 +25,9 @@ from app.pipeline.formatter import (
 def words_linha_1():
     """Primeira linha: 'quando o sol' com acordes e notas."""
     return [
-        AlignedWord(
-            "quando", 0.0, 0.5, chord="C", note="E", octave=4, chord_change=True
-        ),
-        AlignedWord("o", 0.5, 0.7, chord="C", note="G", octave=4, chord_change=False),
-        AlignedWord("sol", 0.7, 1.0, chord="Am", note="A", octave=4, chord_change=True),
+        AlignedWord("quando", 0.0, 0.5, chord="C", notes=["E"], chord_change=True),
+        AlignedWord("o", 0.5, 0.7, chord="C", notes=["G"], chord_change=False),
+        AlignedWord("sol", 0.7, 1.0, chord="Am", notes=["A"], chord_change=True),
     ]
 
 
@@ -136,6 +134,16 @@ class TestBuildMelodyLine:
         pos_g = resultado.find("G")
         pos_a = resultado.find("A")
         assert pos_e < pos_g < pos_a
+
+    def test_multiplas_notas_por_palavra(self):
+        """Palavra com múltiplas notas deve exibir todas."""
+        words = [
+            AlignedWord("quando", 0.0, 0.5, notes=["E", "G", "A"]),
+        ]
+        resultado = _build_melody_line(words)
+        assert "E" in resultado
+        assert "G" in resultado
+        assert "A" in resultado
 
 
 # ── Testes: _build_raw_chord ──────────────────────────────────────────────────
