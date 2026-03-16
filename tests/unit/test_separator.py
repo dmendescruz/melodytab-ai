@@ -262,3 +262,118 @@ class TestModelo6Stems:
 
         assert fonte == "piano"
         assert caminho == piano
+
+
+# ── Testes: Cache de Separação ────────────────────────────────────────────────
+
+
+class TestCache:
+
+    @patch("app.pipeline.separator._get_cache_key")
+    def test_carrega_do_cache_quando_disponivel(self, mock_key, audio_path, tmp_path):
+        """Deve retornar resultado do cache sem chamar Demucs."""
+        cache_dir = tmp_path / "cache" / "abc123"
+        cache_dir.mkdir(parents=True)
+
+        for nome in [
+            "vocals.wav",
+            "bass.wav",
+            "drums.wav",
+            "other.wav",
+            "harmonic.wav",
+        ]:
+            (cache_dir / nome).write_bytes(b"x" * 2048)
+
+        mock_key.return_value = "abc123"
+
+        with patch("app.pipeline.separator.CACHE_DIR", tmp_path / "cache"):
+            with patch("app.pipeline.separator._separate_local") as mock_local:
+                result = separate(audio_path)
+
+                assert result.success is True
+                mock_local.assert_not_called()
+
+    @patch("app.pipeline.separator._save_to_cache")
+    @patch("app.pipeline.separator._load_from_cache")
+    @patch("app.pipeline.separator._separate_local")
+    def test_salva_no_cache_apos_separacao(
+        self, mock_local, mock_load, mock_save, audio_path, tmp_path
+    ):
+        """Deve salvar no cache após separação bem-sucedida."""
+        mock_load.return_value = None
+        mock_local.return_value = SeparationResult(
+            vocals=tmp_path / "vocals.wav",
+            harmonic=tmp_path / "other.wav",
+            bass=tmp_path / "bass.wav",
+            drums=tmp_path / "drums.wav",
+            other=tmp_path / "other.wav",
+            mode=SeparationMode.LOCAL,
+            success=True,
+            harmonic_source="other",
+        )
+
+        separate(audio_path)
+
+        mock_save.assert_called_once()
+
+    @patch("app.pipeline.separator._load_from_cache")
+    @patch("app.pipeline.separator._separate_local")
+    def test_nao_salva_cache_quando_separacao_falha(
+        self, mock_local, mock_load, audio_path
+    ):
+        """Não deve salvar no cache quando a separação falha."""
+        mock_load.return_value = None
+        mock_local.side_effect = RuntimeError("Demucs falhou")
+
+        with patch("app.pipeline.separator._separate_replicate") as mock_rep:
+            mock_rep.side_effect = RuntimeError("Replicate falhou")
+            with patch("app.pipeline.separator._save_to_cache") as mock_save:
+                result = separate(audio_path)
+
+                assert result.success is False
+                mock_save.assert_not_called()
+
+    def test_get_cache_key_retorna_md5(self, audio_path):
+        """Deve retornar hash MD5 consistente para o mesmo arquivo."""
+        from app.pipeline.separator import _get_cache_key
+
+        key1 = _get_cache_key(audio_path)
+        key2 = _get_cache_key(audio_path)
+
+        assert key1 == key2
+        assert len(key1) == 32  # MD5 tem 32 caracteres hex
+
+    def test_get_cache_key_diferente_para_arquivos_diferentes(self, tmp_path):
+        """Arquivos diferentes devem gerar chaves diferentes."""
+        from app.pipeline.separator import _get_cache_key
+
+        audio1 = tmp_path / "audio1.mp3"
+        audio2 = tmp_path / "audio2.mp3"
+        audio1.write_bytes(b"conteudo um")
+        audio2.write_bytes(b"conteudo dois")
+
+        assert _get_cache_key(audio1) != _get_cache_key(audio2)
+
+    def test_load_cache_retorna_none_quando_inexistente(self, audio_path, tmp_path):
+        """Deve retornar None quando cache não existe."""
+        from app.pipeline.separator import _load_from_cache
+
+        with patch("app.pipeline.separator.CACHE_DIR", tmp_path / "cache_vazio"):
+            resultado = _load_from_cache(audio_path)
+            assert resultado is None
+
+    def test_load_cache_retorna_none_quando_incompleto(self, audio_path, tmp_path):
+        """Deve retornar None quando cache está incompleto."""
+        from app.pipeline.separator import _load_from_cache, _get_cache_key
+
+        cache_key = _get_cache_key(audio_path)
+        cache_path = tmp_path / "cache" / cache_key
+        cache_path.mkdir(parents=True)
+
+        # Cria apenas alguns arquivos — falta harmonic.wav
+        for nome in ["vocals.wav", "bass.wav", "drums.wav", "other.wav"]:
+            (cache_path / nome).write_bytes(b"x" * 2048)
+
+        with patch("app.pipeline.separator.CACHE_DIR", tmp_path / "cache"):
+            resultado = _load_from_cache(audio_path)
+            assert resultado is None
